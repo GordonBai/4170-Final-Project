@@ -1,7 +1,10 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import './Dashboard.css';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+
   // SVG icons
   const CrossIcon = () => (
     <svg width="10" height="10" viewBox="0 0 10 10" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -17,8 +20,7 @@ const Dashboard = () => {
   );
 
   const handleFindNewGroups = () => {
-    // TODO: Navigate to find new groups page
-    console.log('Find New Groups clicked');
+    navigate('/preferences');
   };
 
   const handleGroupClick = (groupName) => {

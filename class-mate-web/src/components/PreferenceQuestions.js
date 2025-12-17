@@ -1,41 +1,77 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { db } from "../firebase";
 import "./PreferenceQuestions.css";
 
 function PreferenceQuestions() {
+  const navigate = useNavigate();
   const [groupSize, setGroupSize] = useState("");
   const [atmosphere, setAtmosphere] = useState("");
   const [location, setLocation] = useState("");
   const [time, setTime] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
 
-  // Simulated submit (no backend)
-  const handleSubmit = () => {
-    // Simple interaction check
+  // Save preferences to Firebase Firestore
+  const handleSubmit = async () => {
+    // Validation check
     if (!groupSize || !atmosphere || !location || !time) {
-      alert("Please answer all questions before continuing.");
+      setError("Please answer all questions before continuing.");
+      setSuccess("");
       return;
     }
 
+    setError("");
+    setSuccess("");
     setLoading(true);
 
-    // Fake async action to simulate saving
-    setTimeout(() => {
-      console.log({
+    try {
+      // Check if db is initialized
+      if (!db) {
+        throw new Error("Firebase database is not initialized");
+      }
+
+      // Create preference data object
+      const preferenceData = {
         groupSize,
         atmosphere,
         location,
         time,
-      });
+        createdAt: serverTimestamp(),
+      };
 
+      // Add document to 'preferences' collection in Firestore
+      const docRef = await addDoc(collection(db, "preferences"), preferenceData);
+      
+      setSuccess("Preferences recorded successfully!");
       alert("Preferences recorded successfully.");
 
-      // Reset state
-      setGroupSize("");
-      setAtmosphere("");
-      setLocation("");
-      setTime("");
+      // Navigate back to dashboard after 1.5 seconds
+      setTimeout(() => {
+        navigate('/dashboard');
+      }, 1500);
+    } catch (err) {
+      console.error("Error saving preferences:", err);
+      
+      // Check for specific error types
+      let errorMessage = "Failed to save preferences. Please try again.";
+      
+      if (err.code === "permission-denied") {
+        errorMessage = "Permission denied. Please check Firestore security rules.";
+      } else if (err.code === "unavailable" || err.message?.includes("connection") || err.message?.includes("timeout")) {
+        errorMessage = "Connection error. Please check your internet connection and Firestore security rules.";
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(`Error: ${errorMessage}`);
+      setSuccess("");
+      alert(`Error: ${errorMessage}`);
+    } finally {
       setLoading(false);
-    }, 600); // short delay so loading state is visible
+    }
   };
 
   return (
@@ -45,6 +81,17 @@ function PreferenceQuestions() {
       </div>
 
       <div className="preference-content">
+        {error && (
+          <div className="preference-error" style={{ color: "red", marginBottom: "20px", padding: "10px", backgroundColor: "#ffebee", borderRadius: "5px" }}>
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="preference-success" style={{ color: "green", marginBottom: "20px", padding: "10px", backgroundColor: "#e8f5e9", borderRadius: "5px", fontWeight: "bold" }}>
+            ✅ {success}
+          </div>
+        )}
+
         <Section
           title="Desired Study Group Size"
           name="groupSize"
